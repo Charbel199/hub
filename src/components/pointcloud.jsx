@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PLYLoader } from 'three-stdlib';
 import * as THREE from 'three';
-import { Canvas } from '@react-three/fiber';
 
 const Pointcloud = ({ filePath }) => {
   const [geometry, setGeometry] = useState(null);
