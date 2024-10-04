@@ -6,13 +6,22 @@ Source: https://sketchfab.com/3d-models/japanese-street-at-night-fb1bdcd71a5544d
 Title: Japanese street at night
 */
 
-import React, { useRef } from 'react'
-import { useGLTF } from '@react-three/drei'
+import React, { useState } from 'react'
+import {Sampler, useGLTF } from '@react-three/drei';
+import * as THREE from 'three';;
+
 
 export function Model(props) {
-  const { nodes, materials } = useGLTF('/assets/japan_street.glb')
-  const cast =[4,6,16, 12,28, 12, 14,32, 44,64,160, 206 ,92,96,192,194,188, 200,104, 90, 216, 218, 222,230, 236, 112, 128, 284, 272, 276, 278, 292, 40,80,170,208,136,110]
-  const cast2 =[4]
+  const { nodes, materials } = useGLTF('/assets/japan_street.glb');
+  const mesh_cast_shadows_id =[4,6,16, 12,28, 12, 14,32, 44,64,160, 206 ,92,96,192,194,188, 200,104, 90, 216, 218, 222,230, 236, 112, 128, 284, 272, 276, 278, 292, 40,80,170,208,136,110];
+  const area_multiplier = 50;
+  const point_width = 0.004;
+  const wireframe_color = "blue";
+  const point_color = "yellow"
+  const emissive_point_color = "yellow" // overrides point_color
+  const emissive_point_intensity = 20
+  let num_of_points;
+
   const meshes = [
     { id: 4, geometry: nodes.Object_4.geometry, material: materials.Props_10, position: [1.548, 0.082, 1.603] },
     { id: 6, geometry: nodes.Object_6.geometry, material: materials.Props_10, position: [1.481, 0.082, 0.541] },
@@ -164,32 +173,111 @@ export function Model(props) {
     { id: 298, geometry: nodes.Object_298.geometry, material: materials.pole, position: [0.211, 3.641, -9.299], rotation: [-0.16, 0, 0] },
     { id: 300, geometry: nodes.Object_300.geometry, material: materials.pole },
     // Add more mesh objects here if needed
-  ]
+  ];
+
+  const [clickedMeshes, setClickedMeshes] = useState({});
+
+  const calculateGeometryArea = (geometry) => {
+    let area = 0;
+    
+    // If the geometry is indexed, we need to access index array
+    const positionAttribute = geometry.attributes.position;
+    const index = geometry.index;
+  
+    const vA = new THREE.Vector3();
+    const vB = new THREE.Vector3();
+    const vC = new THREE.Vector3();
+  
+    // If the geometry is indexed
+    if (index !== null) {
+      for (let i = 0; i < index.count; i += 3) {
+        vA.fromBufferAttribute(positionAttribute, index.getX(i));
+        vB.fromBufferAttribute(positionAttribute, index.getX(i + 1));
+        vC.fromBufferAttribute(positionAttribute, index.getX(i + 2));
+  
+        const edge1 = new THREE.Vector3().subVectors(vB, vA);
+        const edge2 = new THREE.Vector3().subVectors(vC, vA);
+        const crossProduct = new THREE.Vector3().crossVectors(edge1, edge2);
+        const triangleArea = crossProduct.length() * 0.5;
+  
+        area += triangleArea;
+      }
+    } else {
+      // Non-indexed geometry
+      for (let i = 0; i < positionAttribute.count; i += 3) {
+        vA.fromBufferAttribute(positionAttribute, i);
+        vB.fromBufferAttribute(positionAttribute, i + 1);
+        vC.fromBufferAttribute(positionAttribute, i + 2);
+  
+        const edge1 = new THREE.Vector3().subVectors(vB, vA);
+        const edge2 = new THREE.Vector3().subVectors(vC, vA);
+        const crossProduct = new THREE.Vector3().crossVectors(edge1, edge2);
+        const triangleArea = crossProduct.length() * 0.5;
+  
+        area += triangleArea;
+      }
+    }
+  
+    return area;
+  };
+
+  const handleMeshClick = (e, id) => {
+    console.debug("Clicked on mesh with id:", id);
+    e.stopPropagation();  // Prevent the click event from passing through to other meshes
+    setClickedMeshes((prev) => ({
+      ...prev,
+      [id]: !prev[id],  // Toggle the clicked state of the mesh
+    }));
+  };
+
   return (
     <group {...props} dispose={null}>
       {meshes.map(({ id, geometry, material, position, rotation }) => (
-        <mesh
-          key={id}
-          castShadow={cast2.includes(id)}  // Check if id is in the cast array
-          receiveShadow
-          geometry={geometry}
-          material={material}
-          position={position}
-          rotation={rotation || [0, 0, 0]}  // Add default rotation if not defined
-        />
+        clickedMeshes[id] ? (
+          <Sampler count={num_of_points = calculateGeometryArea(geometry)*area_multiplier} key={id}>
+            <mesh
+              position={position}  
+              rotation={rotation || [0, 0, 0]}
+              geometry={geometry} 
+              scale={1}
+              onClick={(e) => handleMeshClick(e, id)}>
+              <meshStandardMaterial color={wireframe_color} wireframe />
+            </mesh>
+            <instancedMesh 
+              position={position}
+              rotation={rotation || [0, 0, 0]}
+              args={[undefined, undefined, num_of_points]}>
+              <sphereGeometry args={[point_width]} />
+              <meshStandardMaterial color={point_color} emissive={emissive_point_color} emissiveIntensity={emissive_point_intensity} />
+            </instancedMesh>
+          </Sampler>
+        ) : (
+          <mesh
+            key={id}
+            castShadow={mesh_cast_shadows_id.includes(id)}  // Check if id is in the cast array
+            receiveShadow
+            geometry={geometry}
+            material={material}
+            position={position}
+            rotation={rotation || [0, 0, 0]}  // Add default rotation if not defined
+            onClick={(e) => handleMeshClick(e, id)}  // Toggle on click
+          />
+        )
       ))}
-      <pointLight  color="hotpink" position={[1.548, 1.082, 1.603]} intensity={2}/>
-      <pointLight color="hotpink" position={[1.081, 1.082, 0.541]} intensity={2}/>
-      <pointLight color="blue"position={[-0.536, 3.161, -0.474]} intensity={2}/>
-      <pointLight color="white"position={[-0.806, 2.894, -3.087]} intensity={1}/>
-      <pointLight color="purple"position={[-0.947, 2.97, -6.72]} intensity={2}/>
-      <pointLight color="white"position={[0.824, 3.557, -0.405]} intensity={1}/>
-      <pointLight color="orange"position={[0.996, 1.903, -4.219]} intensity={1}/>
-      <pointLight color="red"position={[0.952, 3.091, -2.997]} intensity={2}/>
-      <pointLight color="blue"position={[0.949, 2.165, -5.184]} intensity={2}/>
+      <group>
+        <pointLight castShadow color="hotpink" position={[1.548, 1.082, 1.603]} intensity={2} />
+        <pointLight color="hotpink" position={[1.081, 1.082, 0.541]} intensity={2} />
+        <pointLight color="blue" position={[-0.536, 3.161, -0.474]} intensity={2} />
+        <pointLight color="white" position={[-0.806, 2.894, -3.087]} intensity={1} />
+        <pointLight color="purple" position={[-0.947, 2.97, -6.72]} intensity={2} />
+        <pointLight color="white" position={[0.824, 3.557, -0.405]} intensity={1} />
+        <pointLight color="orange" position={[0.996, 1.903, -4.219]} intensity={1} />
+        <pointLight color="red" position={[0.952, 3.091, -2.997]} intensity={2} />
+        <pointLight color="blue" position={[0.949, 2.165, -5.184]} intensity={2} />
+      </group>
     </group>
   )
-}
+};
 
-useGLTF.preload('/assets/japan_street.glb')
+useGLTF.preload('/assets/japan_street.glb');
 export default Model;
