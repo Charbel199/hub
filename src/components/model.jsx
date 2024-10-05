@@ -265,7 +265,7 @@ export function Model(props) {
         )
       ))}
       <group>
-        <pointLight castShadow color="hotpink" position={[1.548, 1.082, 1.603]} intensity={2} />
+        <pointLight color="hotpink" position={[1.548, 1.082, 1.603]} intensity={2} />
         <pointLight color="hotpink" position={[1.081, 1.082, 0.541]} intensity={2} />
         <pointLight color="blue" position={[-0.536, 3.161, -0.474]} intensity={2} />
         <pointLight color="white" position={[-0.806, 2.894, -3.087]} intensity={1} />
