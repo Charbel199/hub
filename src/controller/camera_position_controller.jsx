@@ -20,7 +20,6 @@ const CameraController = ({ boxes }) => {
 
   const bobbingOffset = useRef(0);
 
-  // Handle keydown events
   const handleKeyDown = (event) => {
     switch (event.key.toLowerCase()) {
       case 'w':
@@ -40,7 +39,6 @@ const CameraController = ({ boxes }) => {
     }
   };
 
-  // Handle keyup events
   const handleKeyUp = (event) => {
     switch (event.key.toLowerCase()) {
       case 'w':
@@ -79,7 +77,6 @@ const CameraController = ({ boxes }) => {
     } else if (movement.backward) {
       velocity.current.z = Math.min(velocity.current.z + acceleration, maxSpeed);
     } else {
-      // Apply friction (deceleration) when not moving forward or backward
       velocity.current.z = THREE.MathUtils.lerp(velocity.current.z, 0, friction);
     }
 
@@ -88,7 +85,6 @@ const CameraController = ({ boxes }) => {
     } else if (movement.right) {
       velocity.current.x = Math.min(velocity.current.x + acceleration, maxSpeed);
     } else {
-      // Apply friction (deceleration) when not moving left or right
       velocity.current.x = THREE.MathUtils.lerp(velocity.current.x, 0, friction);
     }
 
@@ -102,8 +98,11 @@ const CameraController = ({ boxes }) => {
     // Create a bounding sphere for the camera at the proposed position
     const cameraBoundingSphere = new THREE.Sphere(proposedPosition, 0.5); // Adjust radius as needed
 
-    // Check for collisions with boxes
-    let collision = false;
+    // Check for collisions on x, y, z axes separately
+    let collisionX = false;
+    let collisionY = false;
+    let collisionZ = false;
+
     for (let i = 0; i < boxes.length; i++) {
       const box = boxes[i];
       const boxPosition = new THREE.Vector3(...box.position);
@@ -112,28 +111,53 @@ const CameraController = ({ boxes }) => {
       const boxMax = boxPosition.clone().add(boxSize.clone().multiplyScalar(0.5));
       const boxBoundingBox = new THREE.Box3(boxMin, boxMax);
 
+      // Check for collisions along x, y, and z independently
       if (boxBoundingBox.intersectsSphere(cameraBoundingSphere)) {
-        collision = true;
-        console.log(`Collision detected with box at ${box.position}`);
-        break;
+        // Check X-axis collision
+        const proposedX = new THREE.Vector3(proposedPosition.x, camera.position.y, camera.position.z);
+        if (boxBoundingBox.containsPoint(proposedX)) {
+          collisionX = true;
+        }
+
+        // Check Z-axis collision
+        const proposedZ = new THREE.Vector3(camera.position.x, camera.position.y, proposedPosition.z);
+        if (boxBoundingBox.containsPoint(proposedZ)) {
+          collisionZ = true;
+        }
+
+        // Check Y-axis (if you have vertical movement, otherwise ignore)
+        const proposedY = new THREE.Vector3(camera.position.x, proposedPosition.y, camera.position.z);
+        if (boxBoundingBox.containsPoint(proposedY)) {
+          collisionY = true;
+        }
       }
     }
 
-    if (!collision) {
-      // Move the camera to the proposed position
-      camera.position.copy(proposedPosition);
+    // Adjust velocity based on the collision on specific axes
+    if (!collisionX) {
+      camera.position.x = proposedPosition.x; // Move along X if no collision
     } else {
-      // Zero out the velocity in the direction of the collision
-      velocity.current.set(0, 0, 0);
+      velocity.current.x = 0; // Stop X-axis movement if collision
+    }
+
+    if (!collisionZ) {
+      camera.position.z = proposedPosition.z; // Move along Z if no collision
+    } else {
+      velocity.current.z = 0; // Stop Z-axis movement if collision
+    }
+
+    if (!collisionY) {
+      camera.position.y = proposedPosition.y; // Move along Y if no collision
+    } else {
+      velocity.current.y = 0; // Stop Y-axis movement if collision (if relevant)
     }
 
     // Simulate head bobbing when moving
     const isMovingNow = movement.forward || movement.backward || movement.left || movement.right;
-    if (isMovingNow && !collision) {
+    if (isMovingNow && !collisionX && !collisionZ) {
       bobbingOffset.current += bobbingFrequency * delta;
       camera.position.y = 1 + Math.sin(bobbingOffset.current) * bobbingAmplitude;
     } else {
-      // Reset head bobbing when not moving
       camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1, 0.1);
       bobbingOffset.current = 0;
     }
