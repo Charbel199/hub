@@ -270,7 +270,7 @@ export function Model(props) {
           <mesh
             key={id}
             castShadow={mesh_cast_shadows_id.includes(id)}
-            receiveShadow
+            receiveShadow={!mesh_cast_shadows_id.includes(id)}
             geometry={geometry}
             material={material}
             position={position}
@@ -282,15 +282,15 @@ export function Model(props) {
         )
       ))}
       <group>
-        <pointLight color="hotpink" position={[1.548, 1.082, 1.603]} intensity={2} />
-        <pointLight color="hotpink" position={[1.081, 1.082, 0.541]} intensity={2} />
-        <pointLight color="blue" position={[-0.536, 3.161, -0.474]} intensity={2} />
-        <pointLight color="white" position={[-0.806, 2.894, -3.087]} intensity={1} />
-        <pointLight color="purple" position={[-0.947, 2.97, -6.72]} intensity={2} />
-        <pointLight color="white" position={[0.824, 3.557, -0.405]} intensity={1} />
-        <pointLight color="orange" position={[0.996, 1.903, -4.219]} intensity={1} />
-        <pointLight color="red" position={[0.952, 3.091, -2.997]} intensity={2} />
-        <pointLight color="blue" position={[0.949, 2.165, -5.184]} intensity={2} />
+        <pointLight color="hotpink" position={[1.548, 1.082, 1.603]} intensity={0.5} />
+        <pointLight color="hotpink" position={[1.081, 1.082, 0.541]} intensity={0.5} />
+        <pointLight color="blue" position={[-0.536, 3.161, -0.474]} intensity={0.5} />
+        <pointLight color="white" position={[-0.806, 2.894, -3.087]} intensity={0.5} />
+        <pointLight color="purple" position={[-0.947, 2.97, -6.72]} intensity={0.5} />
+        <pointLight color="white" position={[0.824, 3.557, -0.405]} intensity={0.5} />
+        <pointLight color="orange" position={[0.996, 1.903, -4.219]} intensity={0.5} />
+        <pointLight color="red" position={[0.952, 3.091, -2.997]} intensity={0.5} />
+        <pointLight color="blue" position={[0.949, 2.165, -5.184]} intensity={0.5} />
       </group>
     </group>
   );
